@@ -1,0 +1,167 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Schedule to stop and start Fargate task"
+
+Metadata:
+  "AWS::CloudFormation::Interface":
+    ParameterGroups:
+      - Label:
+          default: "Global setting"
+        Parameters:
+          - NamePrefix
+      - Label:
+          default: "ECS setting"
+        Parameters:
+          - EcsClusterName
+          - EcsServiceName
+          - EcsClusterArn
+      - Label:
+          default: ""
+        Parameters:
+          - StopScheduleExpression
+          - StartScheduleExpression
+      - Label:
+          default: "ECS DesiredCount setting"
+        Parameters:
+          - StopDesiredCount
+          - StartDesiredCount
+
+Parameters:
+  # General Setting
+  NamePrefix:
+    Description: "Prefix"
+    Type: String
+    Default: ""
+
+  # ECS Setting
+  EcsClusterName:
+    Description: "ECS Cluster Name"
+    Type: String
+    Default: ""
+
+  EcsServiceName:
+    Description: "ECS Service Name"
+    Type: String
+    Default: ""
+
+  EcsClusterArn:
+    Description: "ECS Cluster ARN"
+    Type: String
+    Default: ""
+  
+  # Schedule Setting
+  StopScheduleExpression:
+    Description: "Schedule to stop Fargate task"
+    Type: String
+    Default: "cron(0 9 * * ? *)"
+  
+  StartScheduleExpression:
+    Description: "Schedule to start Fargate task"
+    Type: String
+    Default: "cron(0 0 * * ? *)"
+
+  # ECS DesiredCount Setting
+  StopDesiredCount:
+    Description: "DesiredCount to stop Fargate task"
+    Type: Number
+    Default: 0
+   
+  StartDesiredCount:
+    Description: "DesiredCount to start Fargate task"
+    Type: Number
+    Default: 1
+
+
+Resources:
+  ScheduledRuleStop:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Name: !Sub "${NamePrefix}-stop-ecs-task-schedule"
+      Description: "Schedule to stop Fargate task"
+      ScheduleExpression: !Ref StopScheduleExpression
+      State: "ENABLED"
+      Targets:
+        - Arn: !GetAtt UpdateTaskLambda.Arn
+          Id: "stop-ecs-service-target"
+          Input: !Sub '{"Cluster":"${EcsClusterArn}","ServiceName":"${EcsServiceName}","DesiredCount":${StopDesiredCount}}'
+
+  ScheduledRuleStart:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Name: !Sub "${NamePrefix}-start-ecs-task-schedule"
+      Description: "Schedule to start Fargate task"
+      ScheduleExpression: !Ref StartScheduleExpression
+      State: "ENABLED"
+      Targets:
+        - Arn: !GetAtt UpdateTaskLambda.Arn
+          Id: "start-ecs-service-target"
+          Input: !Sub '{"Cluster":"${EcsClusterArn}","ServiceName":"${EcsServiceName}","DesiredCount":${StartDesiredCount}}'
+
+  UpdateTaskLambda:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: !Sub "${NamePrefix}-update-ecs-service"
+      Code:
+        ZipFile: |
+          import boto3
+          import json
+
+          def lambda_handler(event, context):
+              ecs_client = boto3.client('ecs')
+              response = ecs_client.update_service(
+                  cluster=event['Cluster'],
+                  service=event['ServiceName'],
+                  desiredCount=event['DesiredCount']
+              )
+
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps('Service Updated!')
+              }
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Handler: "index.lambda_handler"
+      Runtime: "python3.10"
+
+  StopTaskLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref UpdateTaskLambda
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt ScheduledRuleStop.Arn
+
+  StartTaskLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref UpdateTaskLambda
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt ScheduledRuleStart.Arn
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${NamePrefix}-ecs-task-schedule-lambda-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        - PolicyName: "ecs-task-schedule-lambda-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "arn:aws:logs:*:*:*"
+              - Effect: "Allow"
+                Action:
+                  - "ecs:UpdateService"
+                Resource: !Sub "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:service/${EcsClusterName}/${EcsServiceName}"
