@@ -8,7 +8,7 @@ We have confirmed operation in the following environments
 ## Overview of AWS resources to be created
 The following resources will be created when this CloudFormation is deployed.
 
-![Resource Overview](image/resources.svg)
+![Resource Overview](images/resources.png)
 
 List of resources to be created
 - AWS Event Rule
