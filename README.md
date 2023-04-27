@@ -8,7 +8,7 @@ We have confirmed operation in the following environments
 ## Overview of AWS resources to be created
 The following resources will be created when this CloudFormation is deployed.
 
-![Resource Overview](image/resources.png)
+![Resource Overview](image/resources.svg)
 
 List of resources to be created
 - AWS Event Rule
@@ -28,7 +28,7 @@ Parameters
 - StopDesiredCount: number specified for DesiredCount to stop (stop=0)
 - StartDesiredCount: number specified for DesiredCount to starting
 
-[Schedule Expressions for Rules]
+[Schedule Expressions for Rules] &nbsp;
 https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html
 
 
