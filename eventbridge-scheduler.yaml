@@ -1,0 +1,138 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Create EventBridge Scheduler for ECS task"
+
+Metadata:
+  "AWS::CloudFormation::Interface":
+    ParameterGroups:
+      - Label:
+          default: "Global setting"
+        Parameters:
+          - NamePrefix
+      - Label:
+          default: "ECS setting"
+        Parameters:
+          - EcsClusterName
+          - EcsServiceName
+      - Label:
+          default: "Schedule setting"
+        Parameters:
+          - StopScheduleExpression
+          - StartScheduleExpression
+          - ScheduleExpressionTimezone
+      - Label:
+          default: "ECS DesiredCount setting"
+        Parameters:
+          - StopDesiredCount
+          - StartDesiredCount
+
+Parameters:
+  # General Setting
+  NamePrefix:
+    Description: "Prefix"
+    Type: String
+    Default: ""
+
+  # ECS Setting
+  EcsClusterName:
+    Description: "ECS Cluster Name"
+    Type: String
+    Default: ""
+
+  EcsServiceName:
+    Description: "ECS Service Name"
+    Type: String
+    Default: ""
+  
+  # Schedule Setting
+  StopScheduleExpression:
+    Description: "Schedule to stop Fargate task"
+    Type: String
+    Default: "cron(0 18 * * ? *)"
+  
+  StartScheduleExpression:
+    Description: "Schedule to start Fargate task"
+    Type: String
+    Default: "cron(0 9 * * ? *)"
+
+  ScheduleExpressionTimezone:
+    Description: "Set Timezone. e.g. Asia/Tokyo. See https://en.wikipedia.org/wiki/List_of_tz_database_time_zones"
+    Type: String
+    Default: "Asia/Tokyo"
+
+  # ECS DesiredCount Setting
+  StopDesiredCount:
+    Description: "DesiredCount to stop Fargate task"
+    Type: Number
+    Default: 0
+   
+  StartDesiredCount:
+    Description: "DesiredCount to start Fargate task"
+    Type: Number
+    Default: 1
+
+
+Resources:
+  ScheduledRuleStop:
+    Type: AWS::Scheduler::Schedule
+    Properties: 
+      Description: "Schedule to stop Fargate task"
+      Name: !Sub "${NamePrefix}-stop-ecs-task-schedule"
+      ScheduleExpression: !Ref StopScheduleExpression
+      ScheduleExpressionTimezone: !Ref ScheduleExpressionTimezone
+      FlexibleTimeWindow: 
+        Mode: "OFF"
+      State: "ENABLED"
+      Target: 
+        Arn: "arn:aws:scheduler:::aws-sdk:ecs:updateService"
+        Input: !Sub "{ \"DesiredCount\": ${StopDesiredCount}, \"Service\": \"${EcsServiceName}\", \"Cluster\": \"${EcsClusterName}\" }"
+        RoleArn: !GetAtt ScheduleRole.Arn
+        RetryPolicy: 
+          MaximumRetryAttempts: 0
+
+  ScheduledRuleStart:
+    Type: AWS::Scheduler::Schedule
+    Properties: 
+      Description: "Schedule to start Fargate task"
+      Name: !Sub "${NamePrefix}-start-ecs-task-schedule"
+      ScheduleExpression: !Ref StartScheduleExpression
+      ScheduleExpressionTimezone: !Ref ScheduleExpressionTimezone
+      FlexibleTimeWindow: 
+        Mode: "OFF"
+      State: "ENABLED"
+      Target: 
+        Arn: "arn:aws:scheduler:::aws-sdk:ecs:updateService"
+        Input: !Sub "{ \"DesiredCount\": ${StartDesiredCount}, \"Service\": \"${EcsServiceName}\", \"Cluster\": \"${EcsClusterName}\" }"
+        RoleArn: !GetAtt ScheduleRole.Arn
+        RetryPolicy: 
+          MaximumRetryAttempts: 0
+
+  ScheduleRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${NamePrefix}-ecs-task-schedule-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "scheduler.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        - PolicyName: "ecs-task-schedule-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "arn:aws:logs:*:*:*"
+              - Effect: "Allow"
+                Action:
+                  - "ecs:UpdateService"
+                Resource: !Sub "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:service/${EcsClusterName}/${EcsServiceName}"
+
+
