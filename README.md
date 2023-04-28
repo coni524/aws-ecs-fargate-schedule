@@ -38,7 +38,7 @@ https://docs.aws.amazon.com/scheduler/latest/UserGuide/managing-targets-universa
 
 &nbsp;
 
-## AWS EventBridge Scheduler (Old)
+## AWS EventBridge Rule and Lambda (Old)
 ![Resource Overview](images/events-rule.png)
 
 List of resources to be created
@@ -46,7 +46,7 @@ List of resources to be created
 - AWS Lambda(and permission)
 - IAM Role for Lambda
 
-### AWS EventBridge Rule Setup
+### AWS EventBridge Rule and Lambda Setup
 Extract ecs-schedule.yaml from the AWS Management Console or AWS CLI.
 
 Parameters
