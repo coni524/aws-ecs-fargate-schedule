@@ -7,17 +7,14 @@ We have confirmed operation in the following environments
 
 &nbsp;
 
-## Overview of AWS resources to be created
-The following resources will be created when this CloudFormation is deployed.
-
-## AWS EventBridge Scheduler (Recommend)
+# AWS EventBridge Scheduler (Recommend)
 ![Resource Overview](images/eventbridge-scheduler.png)
 
 List of resources to be created
 - AWS EventBridge Scheduler
 - IAM Role for EventBridge Scheduler
 
-### AWS EventBridge Scheduler Setup
+## Setup
 Extract eventbridge-scheduler.yaml from the AWS Management Console or AWS CLI.
 
 Parameters
@@ -38,7 +35,7 @@ https://docs.aws.amazon.com/scheduler/latest/UserGuide/managing-targets-universa
 
 &nbsp;
 
-## AWS EventBridge Rule and Lambda (Old)
+# AWS EventBridge Rule and Lambda (Old)
 ![Resource Overview](images/events-rule.png)
 
 List of resources to be created
@@ -46,8 +43,8 @@ List of resources to be created
 - AWS Lambda(and permission)
 - IAM Role for Lambda
 
-### AWS EventBridge Rule and Lambda Setup
-Extract ecs-schedule.yaml from the AWS Management Console or AWS CLI.
+## Setup
+Extract events-rule.yaml from the AWS Management Console or AWS CLI.
 
 Parameters
 - NamePrefix: Prefix
