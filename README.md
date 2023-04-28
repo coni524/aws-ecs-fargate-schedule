@@ -14,7 +14,7 @@ The following resources will be created when this CloudFormation is deployed.
 ![Resource Overview](images/eventbridge-scheduler.png)
 
 List of resources to be created
-- AWS Event Rule
+- AWS EventBridge Scheduler
 - IAM Role for EventBridge Scheduler
 
 ### AWS EventBridge Scheduler Setup
