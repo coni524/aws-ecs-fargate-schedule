@@ -18,7 +18,7 @@ List of resources to be created
 - IAM Role for EventBridge Scheduler
 
 ### AWS EventBridge Scheduler Setup
-Extract ecs-schedule.yaml from the AWS Management Console or AWS CLI.
+Extract eventbridge-scheduler.yaml from the AWS Management Console or AWS CLI.
 
 Parameters
 - NamePrefix: Prefix
